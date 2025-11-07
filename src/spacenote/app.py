@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from spacenote.config import Config
 from spacenote.core.core import Core
+from spacenote.core.modules.space.models import SpaceView
 from spacenote.core.modules.user.models import User, UserView
 from spacenote.errors import AccessDeniedError, AuthenticationError, ValidationError
 
@@ -84,3 +85,30 @@ class App:
 
         # Delete the user
         await self._core.services.user.delete_user(username)
+
+    # Space management methods
+
+    async def get_spaces(self, auth_token: str) -> list[SpaceView]:
+        """Get all spaces accessible to current user.
+
+        Admin sees all spaces, regular users see only spaces where they are members.
+        """
+        user = self._get_authenticated_user(auth_token)
+        spaces = self._core.services.space.get_all_spaces()
+
+        # Admin sees all, regular users see only their spaces
+        visible_spaces = spaces if user.username == "admin" else [s for s in spaces if user.username in s.members]
+
+        return [SpaceView(**s.model_dump()) for s in visible_spaces]
+
+    async def create_space(self, auth_token: str, slug: str, title: str) -> SpaceView:
+        """Create a new space (admin only)."""
+        self._ensure_admin(auth_token)
+        space = await self._core.services.space.create_space(slug, title)
+        return SpaceView(**space.model_dump())
+
+    async def add_space_member(self, auth_token: str, slug: str, username: str) -> SpaceView:
+        """Add member to space (admin only)."""
+        self._ensure_admin(auth_token)
+        space = await self._core.services.space.add_member(slug, username)
+        return SpaceView(**space.model_dump())

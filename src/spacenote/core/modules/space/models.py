@@ -66,3 +66,12 @@ class Space(MongoModel):
         default_factory=list,
         description="Custom field definitions for notes in this space",
     )
+
+
+class SpaceView(BaseModel):
+    """Public space representation for API responses."""
+
+    slug: str = Field(..., description="Unique identifier for the space")
+    title: str = Field(..., description="Display name of the space")
+    members: list[str] = Field(..., description="List of usernames with access to this space")
+    fields: list[SpaceField] = Field(..., description="Custom field definitions for notes in this space")

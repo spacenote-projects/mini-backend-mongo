@@ -8,7 +8,7 @@ from spacenote.config import Config
 from spacenote.errors import UserError
 from spacenote.web.error_handlers import general_exception_handler, user_error_handler
 from spacenote.web.openapi import customize_openapi
-from spacenote.web.routers import users
+from spacenote.web.routers import spaces, users
 
 
 def create_fastapi_app(app_instance: App, config: Config) -> FastAPI:
@@ -33,6 +33,7 @@ def create_fastapi_app(app_instance: App, config: Config) -> FastAPI:
 
     # Register routers with /api/v1 prefix
     fastapi_app.include_router(users.router, prefix="/api/v1")
+    fastapi_app.include_router(spaces.router, prefix="/api/v1")
 
     # Register error handlers
     fastapi_app.add_exception_handler(UserError, user_error_handler)  # type: ignore[arg-type]
