@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from spacenote.config import Config
 from spacenote.core.core import Core
+from spacenote.core.modules.comment.models import CommentView
 from spacenote.core.modules.note.models import NoteView
 from spacenote.core.modules.space.models import SpaceField, SpaceView
 from spacenote.core.modules.user.models import User, UserView
@@ -156,3 +157,25 @@ class App:
         result = await self._core.services.note.list_notes(space_slug, limit, offset)
         note_views = [NoteView(**note.model_dump()) for note in result.items]
         return PaginationResult(items=note_views, total=result.total, limit=result.limit, offset=result.offset)
+
+    # Comment management methods
+
+    async def create_comment(self, auth_token: str, space_slug: str, note_number: int, content: str) -> CommentView:
+        """Create a new comment on a note (members only)."""
+        user = self._ensure_space_member(auth_token, space_slug)
+        comment = await self._core.services.comment.create_comment(space_slug, note_number, user.username, content)
+        return CommentView(**comment.model_dump())
+
+    async def list_comments(
+        self,
+        auth_token: str,
+        space_slug: str,
+        note_number: int,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> PaginationResult[CommentView]:
+        """List comments with pagination (members only)."""
+        self._ensure_space_member(auth_token, space_slug)
+        result = await self._core.services.comment.list_comments(space_slug, note_number, limit, offset)
+        comment_views = [CommentView(**comment.model_dump()) for comment in result.items]
+        return PaginationResult(items=comment_views, total=result.total, limit=result.limit, offset=result.offset)

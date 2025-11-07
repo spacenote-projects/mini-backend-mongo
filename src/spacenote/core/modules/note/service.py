@@ -5,7 +5,6 @@ from pymongo import ASCENDING
 from pymongo.asynchronous.database import AsyncDatabase
 
 from spacenote.core.core import Service
-from spacenote.core.modules.counter.models import CounterType
 from spacenote.core.modules.note.models import Note
 from spacenote.core.modules.space.models import FieldType
 from spacenote.core.pagination import PaginationResult
@@ -26,7 +25,7 @@ class NoteService(Service):
     async def create_note(self, space_slug: str, author_username: str, raw_fields: dict[str, str]) -> Note:
         space = self.core.services.space.get_space(space_slug)
 
-        next_number = await self.core.services.counter.get_next_sequence(space_slug, CounterType.NOTE)
+        next_number = await self.core.services.counter.get_next_note_number(space_slug)
 
         validated_fields: dict[str, str | list[str] | int | float | None] = {}
 

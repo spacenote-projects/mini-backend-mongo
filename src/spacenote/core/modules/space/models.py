@@ -20,7 +20,6 @@ class FieldType(StrEnum):
     USER = "user"  # Reference to space member
     INT = "int"
     FLOAT = "float"
-    IMAGE = "image"  # Reference to image attachment with preview
 
 
 class FieldOption(StrEnum):
@@ -29,7 +28,6 @@ class FieldOption(StrEnum):
     VALUES = "values"  # list[str] for SELECT
     MIN = "min"  # int/float for numeric types
     MAX = "max"  # int/float for numeric types
-    MAX_WIDTH = "max_width"  # int for IMAGE preview max width
 
 
 class SpaceField(BaseModel):
@@ -41,7 +39,7 @@ class SpaceField(BaseModel):
     options: dict[FieldOption, FieldOptionValueType] = Field(
         default_factory=dict,
         description=(
-            "Field type-specific options (e.g., 'values' for select, 'min'/'max' for numeric types, 'max_width' for image)"
+            "Field type-specific options (e.g., 'values' for select, 'min'/'max' for numeric types)"
         ),
     )
     default: FieldValueType = Field(None, description="Default value for this field")

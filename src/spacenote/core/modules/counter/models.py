@@ -1,13 +1,16 @@
-from enum import StrEnum
-
 from spacenote.core.db import MongoModel
 
 
-class CounterType(StrEnum):
-    NOTE = "note"
+class NoteCounter(MongoModel):
+    """Counter for sequential note numbering within a space."""
 
-
-class Counter(MongoModel):
     space_slug: str
-    counter_type: CounterType
+    seq: int = 0
+
+
+class CommentCounter(MongoModel):
+    """Counter for sequential comment numbering within a note."""
+
+    space_slug: str
+    note_number: int
     seq: int = 0
