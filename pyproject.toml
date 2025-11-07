@@ -5,6 +5,7 @@ description = "Flexible note-taking system with customizable spaces"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]~=0.119.0",
+    "pydantic-settings~=2.11.0",
     "pymongo~=4.15.3",
     "python-dotenv~=1.1.1",
 ]

@@ -39,6 +39,31 @@ This README will be updated as functionality is implemented.
 - **MongoDB** - Document database with flexible schema
 - **Pydantic** - Data validation and settings management
 
+## Architecture Decisions
+
+### Natural Keys vs Surrogate Keys
+
+Unlike the original `spacenote-backend` which uses UUID-based IDs throughout the API, this implementation uses **natural keys** as the primary identifiers:
+
+- **Technical ID**: Every collection has `_id: ObjectId` for MongoDB's internal use
+- **API/Code**: We use natural keys as primary identifiers:
+  - `User` → identified by `username` (string)
+  - `Space` → identified by `slug` (string)
+  - `Note` → identified by `space_slug + number` (composite key)
+
+**Benefits**:
+- More readable URLs and API responses
+- Semantic identifiers that have business meaning
+- Simplified caching (no need to map IDs to entities)
+- Direct lookups without additional index queries
+
+**Example**:
+```
+GET /spaces/my-project/notes/42  # Natural keys
+vs
+GET /spaces/a1b2c3d4.../notes/e5f6g7h8...  # UUID-based
+```
+
 ## Core Features (Planned)
 
 The minimal version will include:
