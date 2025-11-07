@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from spacenote.config import Config
 from spacenote.core.core import Core
+from spacenote.core.modules.note.models import NoteView
 from spacenote.core.modules.space.models import SpaceField, SpaceView
 from spacenote.core.modules.user.models import User, UserView
 from spacenote.errors import AccessDeniedError, AuthenticationError, ValidationError
@@ -47,6 +48,21 @@ class App:
         user = self._get_authenticated_user(auth_token)
         if user.username != "admin":
             raise AccessDeniedError("Admin privileges required")
+        return user
+
+    def _ensure_space_member(self, auth_token: str, space_slug: str) -> User:
+        """Ensure user is authenticated and is a member of the space (or admin)."""
+        user = self._get_authenticated_user(auth_token)
+
+        # Admin can access all spaces
+        if user.username == "admin":
+            return user
+
+        # Check if user is a member
+        space = self._core.services.space.get_space(space_slug)
+        if user.username not in space.members:
+            raise AccessDeniedError(f"Access to space '{space_slug}' denied")
+
         return user
 
     def _resolve_user(self, username: str) -> User:
@@ -118,3 +134,11 @@ class App:
         self._ensure_admin(auth_token)
         space = await self._core.services.space.add_field(slug, field)
         return SpaceView(**space.model_dump())
+
+    # Note management methods
+
+    async def create_note(self, auth_token: str, space_slug: str, raw_fields: dict[str, str]) -> NoteView:
+        """Create a new note (members only)."""
+        user = self._ensure_space_member(auth_token, space_slug)
+        note = await self._core.services.note.create_note(space_slug, user.username, raw_fields)
+        return NoteView(**note.model_dump())
