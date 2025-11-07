@@ -15,6 +15,9 @@ class User(MongoModel):
 
 
 class UserView(BaseModel):
-    """Public user representation for API responses."""
+    """Public user representation for API responses.
+
+    Token is intentionally hidden for security.
+    """
 
     username: str
