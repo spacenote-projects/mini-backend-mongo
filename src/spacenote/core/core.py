@@ -40,26 +40,36 @@ class Services:
     """Service registry for all application services."""
 
     def __init__(self, database: AsyncDatabase[dict[str, Any]]) -> None:
+        from spacenote.core.modules.counter.service import CounterService  # noqa: PLC0415
+        from spacenote.core.modules.note.service import NoteService  # noqa: PLC0415
         from spacenote.core.modules.space.service import SpaceService  # noqa: PLC0415
         from spacenote.core.modules.user.service import UserService  # noqa: PLC0415
 
         self.user = UserService(database)
         self.space = SpaceService(database)
+        self.counter = CounterService(database)
+        self.note = NoteService(database)
 
     def set_core(self, core: Core) -> None:
         """Set core reference for all services."""
         self.user.set_core(core)
         self.space.set_core(core)
+        self.counter.set_core(core)
+        self.note.set_core(core)
 
     async def start_all(self) -> None:
         """Initialize all services."""
         await self.user.on_start()
         await self.space.on_start()
+        await self.counter.on_start()
+        await self.note.on_start()
 
     async def stop_all(self) -> None:
         """Cleanup all services."""
         await self.user.on_stop()
         await self.space.on_stop()
+        await self.counter.on_stop()
+        await self.note.on_stop()
 
 
 class Core:

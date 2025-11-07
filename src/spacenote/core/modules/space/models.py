@@ -8,7 +8,7 @@ from spacenote.core.db import MongoModel
 FieldOptionValueType = list[str] | int
 
 # Type for actual field values in notes
-FieldValueType = str | list[str] | int | None
+FieldValueType = str | list[str] | int | float | None
 
 
 class FieldType(StrEnum):
