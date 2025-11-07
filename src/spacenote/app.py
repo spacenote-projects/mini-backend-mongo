@@ -6,6 +6,7 @@ from spacenote.core.core import Core
 from spacenote.core.modules.note.models import NoteView
 from spacenote.core.modules.space.models import SpaceField, SpaceView
 from spacenote.core.modules.user.models import User, UserView
+from spacenote.core.pagination import PaginationResult
 from spacenote.errors import AccessDeniedError, AuthenticationError, ValidationError
 
 
@@ -142,3 +143,16 @@ class App:
         user = self._ensure_space_member(auth_token, space_slug)
         note = await self._core.services.note.create_note(space_slug, user.username, raw_fields)
         return NoteView(**note.model_dump())
+
+    async def get_note(self, auth_token: str, space_slug: str, number: int) -> NoteView:
+        """Get single note by number (members only)."""
+        self._ensure_space_member(auth_token, space_slug)
+        note = await self._core.services.note.get_note(space_slug, number)
+        return NoteView(**note.model_dump())
+
+    async def list_notes(self, auth_token: str, space_slug: str, limit: int = 50, offset: int = 0) -> PaginationResult[NoteView]:
+        """List notes with pagination (members only)."""
+        self._ensure_space_member(auth_token, space_slug)
+        result = await self._core.services.note.list_notes(space_slug, limit, offset)
+        note_views = [NoteView(**note.model_dump()) for note in result.items]
+        return PaginationResult(items=note_views, total=result.total, limit=result.limit, offset=result.offset)

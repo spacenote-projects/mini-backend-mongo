@@ -8,7 +8,8 @@ from spacenote.core.core import Service
 from spacenote.core.modules.counter.models import CounterType
 from spacenote.core.modules.note.models import Note
 from spacenote.core.modules.space.models import FieldType
-from spacenote.errors import ValidationError
+from spacenote.core.pagination import PaginationResult
+from spacenote.errors import NotFoundError, ValidationError
 
 
 class NoteService(Service):
@@ -68,3 +69,25 @@ class NoteService(Service):
 
         await self._collection.insert_one(note.model_dump())
         return note
+
+    async def get_note(self, space_slug: str, number: int) -> Note:
+        """Get note by space slug and number."""
+        doc = await self._collection.find_one({"space_slug": space_slug, "number": number})
+        if not doc:
+            raise NotFoundError(f"Note not found: space={space_slug}, number={number}")
+        return Note.model_validate(doc)
+
+    async def list_notes(self, space_slug: str, limit: int = 50, offset: int = 0) -> PaginationResult[Note]:
+        """Get paginated notes in space, sorted by number descending (newest first)."""
+        query = {"space_slug": space_slug}
+
+        total = await self._collection.count_documents(query)
+
+        cursor = self._collection.find(query)
+        cursor = cursor.sort("number", -1)
+        cursor = cursor.skip(offset).limit(limit)
+
+        docs = await cursor.to_list()
+        items = [Note.model_validate(doc) for doc in docs]
+
+        return PaginationResult(items=items, total=total, limit=limit, offset=offset)
