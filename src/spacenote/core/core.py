@@ -37,21 +37,26 @@ class Services:
     """Service registry for all application services."""
 
     def __init__(self, database: Database[dict[str, Any]]) -> None:
+        from spacenote.core.modules.space.service import SpaceService  # noqa: PLC0415
         from spacenote.core.modules.user.service import UserService  # noqa: PLC0415
 
         self.user = UserService(database)
+        self.space = SpaceService(database)
 
     def set_core(self, core: Core) -> None:
         """Set core reference for all services."""
         self.user.set_core(core)
+        self.space.set_core(core)
 
     def start_all(self) -> None:
         """Initialize all services."""
         self.user.on_start()
+        self.space.on_start()
 
     def stop_all(self) -> None:
         """Cleanup all services."""
         self.user.on_stop()
+        self.space.on_stop()
 
 
 class Core:
