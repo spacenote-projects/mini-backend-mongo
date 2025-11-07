@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from spacenote.config import Config
 from spacenote.core.core import Core
-from spacenote.core.modules.space.models import SpaceView
+from spacenote.core.modules.space.models import SpaceField, SpaceView
 from spacenote.core.modules.user.models import User, UserView
 from spacenote.errors import AccessDeniedError, AuthenticationError, ValidationError
 
@@ -111,4 +111,10 @@ class App:
         """Add member to space (admin only)."""
         self._ensure_admin(auth_token)
         space = await self._core.services.space.add_member(slug, username)
+        return SpaceView(**space.model_dump())
+
+    async def add_field_to_space(self, auth_token: str, slug: str, field: SpaceField) -> SpaceView:
+        """Add field to space (admin only)."""
+        self._ensure_admin(auth_token)
+        space = await self._core.services.space.add_field(slug, field)
         return SpaceView(**space.model_dump())

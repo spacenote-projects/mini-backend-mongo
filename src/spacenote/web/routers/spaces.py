@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 
-from spacenote.core.modules.space.models import SpaceView
+from spacenote.core.modules.space.models import SpaceField, SpaceView
 from spacenote.web.deps import AppDep, AuthTokenDep
 
 router = APIRouter(tags=["spaces"])
@@ -111,3 +111,27 @@ async def add_space_member(
 ) -> SpaceView:
     """Add member to space (admin only)."""
     return await app.add_space_member(auth_token, slug, member_data.username)
+
+
+@router.post(
+    "/spaces/{slug}/fields",
+    summary="Add field to space",
+    description="Adds a new custom field definition to the specified space. Requires admin privileges.",
+    operation_id="addFieldToSpace",
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Field added successfully"},
+        400: {"model": ErrorResponse, "description": "Validation error (e.g., field id already exists)"},
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        403: {"model": ErrorResponse, "description": "Admin privileges required"},
+        404: {"model": ErrorResponse, "description": "Space not found"},
+    },
+)
+async def add_field_to_space(
+    slug: str,
+    field: SpaceField,
+    app: AppDep,
+    auth_token: AuthTokenDep,
+) -> SpaceView:
+    """Add field to space (admin only)."""
+    return await app.add_field_to_space(auth_token, slug, field)

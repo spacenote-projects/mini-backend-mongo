@@ -3,7 +3,7 @@ from typing import Any
 from pymongo.asynchronous.database import AsyncDatabase
 
 from spacenote.core.core import Service
-from spacenote.core.modules.space.models import Space
+from spacenote.core.modules.space.models import Space, SpaceField
 from spacenote.errors import NotFoundError, ValidationError
 
 
@@ -64,6 +64,26 @@ class SpaceService(Service):
 
         # Update database
         await self._collection.update_one({"slug": slug}, {"$set": {"members": space.members}})
+
+        return space
+
+    async def add_field(self, slug: str, field: SpaceField) -> Space:
+        """Add field to space with uniqueness validation."""
+        if not self.has_slug(slug):
+            raise NotFoundError(f"Space '{slug}' not found")
+
+        space = self._spaces[slug]
+
+        # Check if field with this id already exists
+        for existing_field in space.fields:
+            if existing_field.id == field.id:
+                raise ValidationError(f"Field '{field.id}' already exists in space '{slug}'")
+
+        # Add field to list in cache
+        space.fields.append(field)
+
+        # Update database using $push
+        await self._collection.update_one({"slug": slug}, {"$push": {"fields": field.model_dump()}})
 
         return space
 
