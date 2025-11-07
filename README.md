@@ -1,0 +1,56 @@
+# mini-backend-mongo
+
+A minimal version of [spacenote-backend](https://github.com/spacenote-projects/spacenote-backend) designed to extract and preserve only the core functionality.
+
+## Project Purpose
+
+This project is part of a database comparison experiment to help decide between **MongoDB** and **PostgreSQL** for the main SpaceNote project.
+
+### Why This Project Exists
+
+The original `spacenote-backend` has grown to include many features (~8,000 lines of code, 14 modules). To make an informed decision about the database choice, we need:
+
+1. **Simplified codebase** - Strip away optional integrations (Telegram, LLM, advanced image processing) and keep only essential features
+2. **Clear comparison baseline** - A minimal MongoDB implementation that can be directly compared with `mini-backend-postgres`
+3. **Focus on core patterns** - Highlight how MongoDB handles the fundamental data structures (users, spaces, custom fields, notes, comments, filters)
+
+### Parallel Projects
+
+- **mini-backend-mongo** (this repo) - MongoDB implementation
+- **mini-backend-postgres** (planned) - PostgreSQL implementation with identical functionality
+
+After implementing both versions, we'll compare:
+- Code complexity
+- Query patterns
+- Performance characteristics
+- Developer experience
+- Schema flexibility vs. structure
+
+## Project Status
+
+🚧 **In Development** - Features are being added incrementally.
+
+This README will be updated as functionality is implemented.
+
+## Technology Stack
+
+- **Python 3.14+**
+- **FastAPI** - Modern async web framework
+- **MongoDB** - Document database with flexible schema
+- **Pydantic** - Data validation and settings management
+
+## Core Features (Planned)
+
+The minimal version will include:
+
+- **User Management** - Authentication, user accounts
+- **Space Management** - Workspaces with member access control
+- **Custom Field System** - Dynamic schema with multiple field types
+- **Note CRUD** - Create, read, update notes with custom fields
+- **Comment System** - Discussions on notes
+
+
+## Related Projects
+
+- [spacenote-backend](https://github.com/spacenote-projects/spacenote-backend) - Full-featured backend
+- mini-backend-postgres (coming soon) - PostgreSQL comparison implementation
