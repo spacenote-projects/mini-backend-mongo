@@ -1,7 +1,6 @@
 from typing import Any
 
-from pymongo.collection import Collection
-from pymongo.database import Database
+from pymongo.asynchronous.database import AsyncDatabase
 
 from spacenote.core.core import Service
 from spacenote.core.modules.space.models import Space
@@ -11,9 +10,9 @@ from spacenote.errors import NotFoundError, ValidationError
 class SpaceService(Service):
     """Manages spaces with in-memory cache indexed by natural key (slug)."""
 
-    def __init__(self, database: Database[dict[str, Any]]) -> None:
+    def __init__(self, database: AsyncDatabase[dict[str, Any]]) -> None:
         super().__init__(database)
-        self._collection: Collection[dict[str, Any]] = database.get_collection("spaces")
+        self._collection = database.get_collection("spaces")
         # Cache by natural key (slug) instead of ObjectId
         self._spaces: dict[str, Space] = {}
 
@@ -31,20 +30,20 @@ class SpaceService(Service):
         """Get all spaces from cache."""
         return list(self._spaces.values())
 
-    def create_space(self, slug: str, title: str) -> Space:
+    async def create_space(self, slug: str, title: str) -> Space:
         """Create space with empty members list."""
         if self.has_slug(slug):
             raise ValidationError(f"Space '{slug}' already exists")
 
         space = Space(slug=slug, title=title, members=[])
-        self._collection.insert_one(space.to_mongo())
+        await self._collection.insert_one(space.to_mongo())
 
         # Update cache
         self._spaces[slug] = space
 
         return space
 
-    def add_member(self, slug: str, username: str) -> Space:
+    async def add_member(self, slug: str, username: str) -> Space:
         """Add member to space with username validation via UserService."""
         if not self.has_slug(slug):
             raise NotFoundError(f"Space '{slug}' not found")
@@ -64,19 +63,19 @@ class SpaceService(Service):
         space.members.append(username)
 
         # Update database
-        self._collection.update_one({"slug": slug}, {"$set": {"members": space.members}})
+        await self._collection.update_one({"slug": slug}, {"$set": {"members": space.members}})
 
         return space
 
-    def update_all_spaces_cache(self) -> None:
+    async def update_all_spaces_cache(self) -> None:
         """Reload all spaces cache from database."""
-        spaces = Space.list_cursor(self._collection.find())
+        spaces = await Space.list_cursor(self._collection.find())
         self._spaces = {space.slug: space for space in spaces}
 
-    def on_start(self) -> None:
+    async def on_start(self) -> None:
         """Initialize indexes and cache."""
         # Create unique index on natural key
-        self._collection.create_index([("slug", 1)], unique=True)
+        await self._collection.create_index([("slug", 1)], unique=True)
 
         # Load all spaces into cache
-        self.update_all_spaces_cache()
+        await self.update_all_spaces_cache()

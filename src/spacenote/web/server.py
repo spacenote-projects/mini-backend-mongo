@@ -17,11 +17,8 @@ def create_fastapi_app(app_instance: App, config: Config) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:  # noqa: ARG001
         """Manage application lifecycle (startup and shutdown)."""
-        app_instance.start()
-        try:
+        async with app_instance.lifespan():
             yield
-        finally:
-            app_instance.stop()
 
     fastapi_app = FastAPI(
         title="SpaceNote Mini API",

@@ -43,12 +43,12 @@ class ErrorResponse(BaseModel):
         401: {"model": ErrorResponse, "description": "Not authenticated"},
     },
 )
-def get_current_user(
+async def get_current_user(
     app: AppDep,
     auth_token: AuthTokenDep,
 ) -> UserView:
     """Get current authenticated user."""
-    return app.get_current_user(auth_token)
+    return await app.get_current_user(auth_token)
 
 
 @router.get(
@@ -62,12 +62,12 @@ def get_current_user(
         403: {"model": ErrorResponse, "description": "Admin privileges required"},
     },
 )
-def get_all_users(
+async def get_all_users(
     app: AppDep,
     auth_token: AuthTokenDep,
 ) -> list[UserView]:
     """Get all users (admin only)."""
-    return app.get_all_users(auth_token)
+    return await app.get_all_users(auth_token)
 
 
 @router.post(
@@ -83,13 +83,13 @@ def get_all_users(
         403: {"model": ErrorResponse, "description": "Admin privileges required"},
     },
 )
-def create_user(
+async def create_user(
     create_data: CreateUserRequest,
     app: AppDep,
     auth_token: AuthTokenDep,
 ) -> UserView:
     """Create a new user (admin only)."""
-    return app.create_user(auth_token, create_data.username, create_data.token)
+    return await app.create_user(auth_token, create_data.username, create_data.token)
 
 
 @router.delete(
@@ -106,10 +106,10 @@ def create_user(
         404: {"model": ErrorResponse, "description": "User not found"},
     },
 )
-def delete_user(
+async def delete_user(
     username: str,
     app: AppDep,
     auth_token: AuthTokenDep,
 ) -> None:
     """Delete a user (admin only)."""
-    app.delete_user(auth_token, username)
+    await app.delete_user(auth_token, username)

@@ -1,3 +1,6 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from spacenote.config import Config
 from spacenote.core.core import Core
 from spacenote.core.modules.user.models import User, UserView
@@ -14,13 +17,14 @@ class App:
     def __init__(self, config: Config) -> None:
         self._core = Core(config)
 
-    def start(self) -> None:
-        """Initialize all services."""
-        self._core.start()
-
-    def stop(self) -> None:
-        """Cleanup resources."""
-        self._core.stop()
+    @asynccontextmanager
+    async def lifespan(self) -> AsyncGenerator[None]:
+        """Manage application lifecycle - startup and shutdown."""
+        await self._core.on_start()
+        try:
+            yield
+        finally:
+            await self._core.on_stop()
 
     # Authentication helpers
 
@@ -50,24 +54,24 @@ class App:
 
     # User management methods
 
-    def get_current_user(self, auth_token: str) -> UserView:
+    async def get_current_user(self, auth_token: str) -> UserView:
         """Get current authenticated user."""
         user = self._get_authenticated_user(auth_token)
         return UserView(username=user.username)
 
-    def get_all_users(self, auth_token: str) -> list[UserView]:
+    async def get_all_users(self, auth_token: str) -> list[UserView]:
         """Get all users (admin only)."""
         self._ensure_admin(auth_token)
         users = self._core.services.user.get_all_users()
         return [UserView(username=user.username) for user in users]
 
-    def create_user(self, auth_token: str, username: str, token: str) -> UserView:
+    async def create_user(self, auth_token: str, username: str, token: str) -> UserView:
         """Create a new user (admin only)."""
         self._ensure_admin(auth_token)
-        user = self._core.services.user.create_user(username, token)
+        user = await self._core.services.user.create_user(username, token)
         return UserView(username=user.username)
 
-    def delete_user(self, auth_token: str, username: str) -> None:
+    async def delete_user(self, auth_token: str, username: str) -> None:
         """Delete a user (admin only)."""
         current_user = self._ensure_admin(auth_token)
 
@@ -79,4 +83,4 @@ class App:
         self._resolve_user(username)
 
         # Delete the user
-        self._core.services.user.delete_user(username)
+        await self._core.services.user.delete_user(username)

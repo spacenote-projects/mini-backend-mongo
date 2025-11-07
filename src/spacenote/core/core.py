@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Any
+from urllib.parse import urlparse
 
-from pymongo import MongoClient
-from pymongo.database import Database
+from pymongo import AsyncMongoClient
+from pymongo.asynchronous.database import AsyncDatabase
 
 from spacenote.config import Config
 
@@ -11,14 +14,14 @@ from spacenote.config import Config
 class Service:
     """Base class for services with direct database access."""
 
-    def __init__(self, database: Database[dict[str, Any]]) -> None:
+    def __init__(self, database: AsyncDatabase[dict[str, Any]]) -> None:
         self.database = database
         self._core: Core | None = None
 
-    def on_start(self) -> None:
+    async def on_start(self) -> None:
         """Initialize service on application startup."""
 
-    def on_stop(self) -> None:
+    async def on_stop(self) -> None:
         """Cleanup service on application shutdown."""
 
     @property
@@ -36,7 +39,7 @@ class Service:
 class Services:
     """Service registry for all application services."""
 
-    def __init__(self, database: Database[dict[str, Any]]) -> None:
+    def __init__(self, database: AsyncDatabase[dict[str, Any]]) -> None:
         from spacenote.core.modules.space.service import SpaceService  # noqa: PLC0415
         from spacenote.core.modules.user.service import UserService  # noqa: PLC0415
 
@@ -48,15 +51,15 @@ class Services:
         self.user.set_core(core)
         self.space.set_core(core)
 
-    def start_all(self) -> None:
+    async def start_all(self) -> None:
         """Initialize all services."""
-        self.user.on_start()
-        self.space.on_start()
+        await self.user.on_start()
+        await self.space.on_start()
 
-    def stop_all(self) -> None:
+    async def stop_all(self) -> None:
         """Cleanup all services."""
-        self.user.on_stop()
-        self.space.on_stop()
+        await self.user.on_stop()
+        await self.space.on_stop()
 
 
 class Core:
@@ -64,18 +67,32 @@ class Core:
 
     def __init__(self, config: Config) -> None:
         self.config = config
-        self.client: MongoClient[dict[str, Any]] = MongoClient(config.database_url)
-        # Extract database name from URL
-        db_name = config.database_url.split("/")[-1].split("?")[0]
-        self.database: Database[dict[str, Any]] = self.client[db_name]
+        # Create async client synchronously (no await needed)
+        self.mongo_client: AsyncMongoClient[dict[str, Any]] = AsyncMongoClient(
+            config.database_url,
+            uuidRepresentation="standard",
+            tz_aware=True,
+        )
+        # Extract database name from URL and get database
+        db_name = urlparse(config.database_url).path[1:]
+        self.database: AsyncDatabase[dict[str, Any]] = self.mongo_client.get_database(db_name)
         self.services = Services(self.database)
         self.services.set_core(self)
 
-    def start(self) -> None:
-        """Initialize all services."""
-        self.services.start_all()
+    @asynccontextmanager
+    async def lifespan(self) -> AsyncGenerator[None]:
+        """Manage application lifecycle - startup and shutdown."""
+        await self.on_start()
+        try:
+            yield
+        finally:
+            await self.on_stop()
 
-    def stop(self) -> None:
-        """Cleanup resources."""
-        self.services.stop_all()
-        self.client.close()
+    async def on_start(self) -> None:
+        """Start all services on application startup."""
+        await self.services.start_all()
+
+    async def on_stop(self) -> None:
+        """Stop services and close MongoDB connection on shutdown."""
+        await self.services.stop_all()
+        await self.mongo_client.aclose()

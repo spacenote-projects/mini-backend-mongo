@@ -2,7 +2,7 @@ from typing import Any, Self
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
-from pymongo.cursor import Cursor
+from pymongo.asynchronous.cursor import AsyncCursor
 
 
 class MongoModel(BaseModel):
@@ -24,6 +24,6 @@ class MongoModel(BaseModel):
         return data
 
     @classmethod
-    def list_cursor(cls, cursor: Cursor[dict[str, Any]]) -> list[Self]:
-        """Iterate over a Cursor and return a list of model instances."""
-        return [cls.model_validate(item) for item in cursor]
+    async def list_cursor(cls, cursor: AsyncCursor[dict[str, Any]]) -> list[Self]:
+        """Iterate over an AsyncCursor and return a list of model instances."""
+        return [cls.model_validate(item) async for item in cursor]
