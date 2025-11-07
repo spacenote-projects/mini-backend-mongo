@@ -64,6 +64,44 @@ vs
 GET /spaces/a1b2c3d4.../notes/e5f6g7h8...  # UUID-based
 ```
 
+### Project Constraints & Architecture Rationale
+
+This project is designed with specific constraints that inform architectural decisions:
+
+#### Deployment Model
+- **Single server deployment** - No distributed setup or horizontal scaling
+- **Single database instance** - No replication, sharding, or multi-region deployment
+- **Single application instance** - No load balancing or multi-instance coordination
+
+#### Data Scale Limits
+- **Max 10 users** - Small, stable user base
+- **Max 100 spaces** - Bounded workspace count
+- **Max 1,000,000 notes** - Primary scaling dimension
+
+#### Architecture Implications
+
+**In-Memory Caching Strategy**
+
+Users and spaces are fully cached in memory at application startup:
+- With max 10 users (~5KB) and 100 spaces (~200KB), memory footprint is negligible
+- Cache invalidation complexity is avoided since single-instance deployment guarantees cache consistency
+- Eliminates database queries for user/space lookups (most frequent operations)
+- Trade-off: Requires application restart for manual database changes
+
+**Simplified Authentication**
+
+Token-based authentication is intentionally simplified:
+- Focus is on MongoDB data patterns, not production-grade security
+- Suitable for comparison/experimentation purposes
+- Not intended as a security reference implementation
+
+**Notes and Comments: Query-Based Access**
+
+Unlike users/spaces, notes and comments are NOT cached:
+- Large dataset (up to 1M notes) makes full caching impractical
+- Access patterns benefit from MongoDB's indexing and querying capabilities
+- Pagination and filtering are essential at this scale
+
 ## Core Features (Planned)
 
 The minimal version will include:

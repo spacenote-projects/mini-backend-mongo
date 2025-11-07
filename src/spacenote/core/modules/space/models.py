@@ -38,9 +38,7 @@ class SpaceField(BaseModel):
     required: bool = Field(False, description="Whether this field is required")
     options: dict[FieldOption, FieldOptionValueType] = Field(
         default_factory=dict,
-        description=(
-            "Field type-specific options (e.g., 'values' for select, 'min'/'max' for numeric types)"
-        ),
+        description=("Field type-specific options (e.g., 'values' for select, 'min'/'max' for numeric types)"),
     )
     default: FieldValueType = Field(None, description="Default value for this field")
 

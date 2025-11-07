@@ -59,11 +59,11 @@ class SpaceService(Service):
         if username in space.members:
             raise ValidationError(f"User '{username}' is already a member of space '{slug}'")
 
-        # Add member to list
-        space.members.append(username)
+        # Update database first
+        await self._collection.update_one({"slug": slug}, {"$push": {"members": username}})
 
-        # Update database
-        await self._collection.update_one({"slug": slug}, {"$set": {"members": space.members}})
+        # Update cache only after successful database write
+        space.members.append(username)
 
         return space
 
@@ -79,11 +79,11 @@ class SpaceService(Service):
             if existing_field.id == field.id:
                 raise ValidationError(f"Field '{field.id}' already exists in space '{slug}'")
 
-        # Add field to list in cache
-        space.fields.append(field)
-
-        # Update database using $push
+        # Update database first using $push
         await self._collection.update_one({"slug": slug}, {"$push": {"fields": field.model_dump()}})
+
+        # Update cache only after successful database write
+        space.fields.append(field)
 
         return space
 
