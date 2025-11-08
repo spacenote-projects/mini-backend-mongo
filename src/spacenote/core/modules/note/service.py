@@ -106,3 +106,28 @@ class NoteService(Service):
         items = [Note.model_validate(doc) for doc in docs]
 
         return PaginationResult(items=items, total=total, limit=limit, offset=offset)
+
+    async def search_notes(
+        self,
+        space_slug: str,
+        filter_dict: dict[str, Any],
+        sort_dict: dict[str, Any],
+        limit: int = 50,
+        offset: int = 0,
+    ) -> PaginationResult[Note]:
+        """Search notes with MongoDB query syntax."""
+        query = {"space_slug": space_slug, **filter_dict}
+
+        total = await self._collection.count_documents(query)
+
+        cursor = self._collection.find(query)
+
+        if sort_dict:
+            cursor = cursor.sort(list(sort_dict.items()))
+
+        cursor = cursor.skip(offset).limit(limit)
+
+        docs = await cursor.to_list()
+        items = [Note.model_validate(doc) for doc in docs]
+
+        return PaginationResult(items=items, total=total, limit=limit, offset=offset)

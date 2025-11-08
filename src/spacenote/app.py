@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from spacenote.config import Config
 from spacenote.core.core import Core
@@ -161,6 +162,21 @@ class App:
         """List notes with pagination (members only)."""
         self._ensure_space_member(auth_token, space_slug)
         result = await self._core.services.note.list_notes(space_slug, limit, offset)
+        note_views = [NoteView(**note.model_dump()) for note in result.items]
+        return PaginationResult(items=note_views, total=result.total, limit=result.limit, offset=result.offset)
+
+    async def search_notes(
+        self,
+        auth_token: str,
+        space_slug: str,
+        filter_dict: dict[str, Any],
+        sort_dict: dict[str, Any],
+        limit: int = 50,
+        offset: int = 0,
+    ) -> PaginationResult[NoteView]:
+        """Search notes with MongoDB query syntax (members only)."""
+        self._ensure_space_member(auth_token, space_slug)
+        result = await self._core.services.note.search_notes(space_slug, filter_dict, sort_dict, limit, offset)
         note_views = [NoteView(**note.model_dump()) for note in result.items]
         return PaginationResult(items=note_views, total=result.total, limit=result.limit, offset=result.offset)
 

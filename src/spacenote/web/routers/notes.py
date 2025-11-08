@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, status
 from pydantic import BaseModel, Field
@@ -17,6 +17,39 @@ class CreateNoteRequest(BaseModel):
         ...,
         description="Field values for the note (all values as strings, will be converted based on field type)",
         examples=[{"title": "My Note", "description": "Note content", "priority": "5"}],
+    )
+
+
+class SearchNotesRequest(BaseModel):
+    """Request model for searching/filtering notes with MongoDB query syntax."""
+
+    filter: dict[str, Any] = Field(
+        default_factory=dict,
+        description="MongoDB query filter (e.g., {'fields.status': 'in_progress', 'fields.priority': {'$gte': 5}})",
+        examples=[
+            {"fields.status": "in_progress"},
+            {"fields.tags": {"$in": ["bug", "urgent"]}},
+            {"$and": [{"fields.status": {"$ne": "completed"}}, {"author_username": "alice"}]},
+        ],
+    )
+    sort: dict[str, Any] = Field(
+        default_factory=lambda: {"number": -1},
+        description="MongoDB sort specification (e.g., {'created_at': -1, 'number': -1}). Use -1 for descending, 1 for ascending",
+        examples=[
+            {"created_at": -1},
+            {"fields.priority": -1, "number": -1},
+        ],
+    )
+    limit: int = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="Maximum items per page",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of items to skip",
     )
 
 
@@ -101,3 +134,37 @@ async def get_note(
 ) -> NoteView:
     """Get single note by number (members only)."""
     return await app.get_note(auth_token, space_slug, number)
+
+
+@router.post(
+    "/spaces/{space_slug}/notes/search",
+    summary="Search/filter notes",
+    description=(
+        "Search and filter notes in a space using MongoDB query syntax. "
+        "Supports complex filtering with MongoDB operators ($eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $all, $regex, $and, $or) "
+        "and custom sorting. Only space members can search notes."
+    ),
+    operation_id="searchNotes",
+    responses={
+        200: {"description": "Paginated search results"},
+        400: {"model": ErrorResponse, "description": "Invalid filter or sort specification"},
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        403: {"model": ErrorResponse, "description": "Not a member of this space"},
+        404: {"model": ErrorResponse, "description": "Space not found"},
+    },
+)
+async def search_notes(
+    space_slug: str,
+    search_data: SearchNotesRequest,
+    app: AppDep,
+    auth_token: AuthTokenDep,
+) -> PaginationResult[NoteView]:
+    """Search notes with MongoDB query syntax (members only)."""
+    return await app.search_notes(
+        auth_token,
+        space_slug,
+        search_data.filter,
+        search_data.sort,
+        search_data.limit,
+        search_data.offset,
+    )
