@@ -33,7 +33,7 @@ class CommentService(Service):
             content=content,
         )
 
-        await self._collection.insert_one(comment.model_dump())
+        await self._collection.insert_one(comment.to_mongo())
         return comment
 
     async def list_comments(

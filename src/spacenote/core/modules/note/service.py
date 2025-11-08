@@ -66,7 +66,7 @@ class NoteService(Service):
             fields=validated_fields,
         )
 
-        await self._collection.insert_one(note.model_dump())
+        await self._collection.insert_one(note.to_mongo())
         return note
 
     async def get_note(self, space_slug: str, number: int) -> Note:
