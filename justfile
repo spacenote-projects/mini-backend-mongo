@@ -8,11 +8,11 @@ sync:
     uv sync --all-extras
 
 format:
-    uv run ruff check --select I --fix src
-    uv run ruff format src
+    uv run ruff check --select I --fix src scripts
+    uv run ruff format src scripts
 
 lint *args: format
-    uv run ruff check {{args}} src
+    uv run ruff check {{args}} src scripts
     uv run mypy src
 
 outdated:

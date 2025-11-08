@@ -13,6 +13,7 @@ This script imports a complete space including:
 import argparse
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -29,9 +30,7 @@ class SpaceImporter:
         }
         self.session = httpx.Client(headers=self.headers)
 
-    def _request(
-        self, method: str, endpoint: str, json_data: dict[str, Any] | None = None
-    ) -> httpx.Response:
+    def _request(self, method: str, endpoint: str, json_data: dict[str, Any] | None = None) -> httpx.Response:
         """Make HTTP request with error handling."""
         url = f"{self.base_url}{endpoint}"
         try:
@@ -90,14 +89,10 @@ class SpaceImporter:
         note = response.json()
         return note["number"]
 
-    def create_comment(
-        self, space_slug: str, note_number: int, content: str
-    ) -> None:
+    def create_comment(self, space_slug: str, note_number: int, content: str) -> None:
         """Create a comment on a note."""
         data = {"content": content}
-        self._request(
-            "POST", f"/spaces/{space_slug}/notes/{note_number}/comments", data
-        )
+        self._request("POST", f"/spaces/{space_slug}/notes/{note_number}/comments", data)
 
     def import_data(self, data: dict[str, Any]) -> None:
         """Import complete space data from JSON structure."""
@@ -161,23 +156,17 @@ class SpaceImporter:
         for original_note_number, comments in comments_by_note.items():
             new_note_number = note_number_map[original_note_number]
             for comment in comments:
-                self.create_comment(
-                    space_data["slug"], new_note_number, comment["content"]
-                )
+                self.create_comment(space_data["slug"], new_note_number, comment["content"])
                 total_comments += 1
 
         print(f" Created {total_comments} comments")
         print(f"\n Import completed successfully!")
-        print(
-            f"   Space '{space_data['slug']}' with {len(notes_data)} notes and {total_comments} comments"
-        )
+        print(f"   Space '{space_data['slug']}' with {len(notes_data)} notes and {total_comments} comments")
 
 
 def main() -> None:
     """Parse arguments and run import."""
-    parser = argparse.ArgumentParser(
-        description="Import space data from JSON file to SpaceNote backend"
-    )
+    parser = argparse.ArgumentParser(description="Import space data from JSON file to SpaceNote backend")
     parser.add_argument(
         "--token",
         default="admin",
@@ -198,7 +187,7 @@ def main() -> None:
 
     # Load JSON data
     try:
-        with open(args.file, encoding="utf-8") as f:
+        with Path(args.file).open(encoding="utf-8") as f:
             data = json.load(f)
     except FileNotFoundError:
         print(f"ERROR: File not found: {args.file}")
