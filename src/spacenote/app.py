@@ -137,6 +137,12 @@ class App:
         space = await self._core.services.space.add_field(slug, field)
         return SpaceView(**space.model_dump())
 
+    async def remove_field_from_space(self, auth_token: str, slug: str, field_id: str) -> SpaceView:
+        """Remove field from space (admin only). Field data in notes is preserved."""
+        self._ensure_admin(auth_token)
+        space = await self._core.services.space.remove_field(slug, field_id)
+        return SpaceView(**space.model_dump())
+
     # Note management methods
 
     async def create_note(self, auth_token: str, space_slug: str, raw_fields: dict[str, str]) -> NoteView:

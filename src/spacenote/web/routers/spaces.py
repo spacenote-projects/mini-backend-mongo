@@ -135,3 +135,28 @@ async def add_field_to_space(
 ) -> SpaceView:
     """Add field to space (admin only)."""
     return await app.add_field_to_space(auth_token, slug, field)
+
+
+@router.delete(
+    "/spaces/{slug}/fields/{field_id}",
+    summary="Remove field from space",
+    description=(
+        "Removes a custom field definition from the specified space. Field data in notes is preserved. Requires admin privileges."
+    ),
+    operation_id="removeFieldFromSpace",
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Field removed successfully"},
+        401: {"model": ErrorResponse, "description": "Not authenticated"},
+        403: {"model": ErrorResponse, "description": "Admin privileges required"},
+        404: {"model": ErrorResponse, "description": "Space or field not found"},
+    },
+)
+async def remove_field_from_space(
+    slug: str,
+    field_id: str,
+    app: AppDep,
+    auth_token: AuthTokenDep,
+) -> SpaceView:
+    """Remove field from space (admin only). Field data in notes is preserved."""
+    return await app.remove_field_from_space(auth_token, slug, field_id)

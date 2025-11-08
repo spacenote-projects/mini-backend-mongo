@@ -1,3 +1,4 @@
+import contextlib
 from datetime import UTC, datetime
 from typing import Any
 
@@ -21,6 +22,21 @@ class NoteService(Service):
             [("space_slug", ASCENDING), ("number", ASCENDING)],
             unique=True,
         )
+
+    async def create_field_index(self, space_slug: str, field_id: str) -> None:
+        """Create a partial index on note.fields for a specific space and field."""
+        index_name = f"fields_{field_id}_{space_slug}"
+        await self._collection.create_index(
+            [(f"fields.{field_id}", ASCENDING)],
+            name=index_name,
+            partialFilterExpression={"space_slug": space_slug},
+        )
+
+    async def drop_field_index(self, space_slug: str, field_id: str) -> None:
+        """Drop the partial index for a specific space and field."""
+        index_name = f"fields_{field_id}_{space_slug}"
+        with contextlib.suppress(Exception):
+            await self._collection.drop_index(index_name)
 
     async def create_note(self, space_slug: str, author_username: str, raw_fields: dict[str, str]) -> Note:
         space = self.core.services.space.get_space(space_slug)

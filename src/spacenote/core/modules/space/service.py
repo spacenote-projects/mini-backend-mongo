@@ -85,6 +85,32 @@ class SpaceService(Service):
         # Update cache only after successful database write
         space.fields.append(field)
 
+        # Create index for this field in notes collection
+        await self.core.services.note.create_field_index(slug, field.id)
+
+        return space
+
+    async def remove_field(self, slug: str, field_id: str) -> Space:
+        """Remove field from space. Field data in notes is preserved, only index is dropped."""
+        if not self.has_slug(slug):
+            raise NotFoundError(f"Space '{slug}' not found")
+
+        space = self._spaces[slug]
+
+        # Check if field exists
+        field_exists = any(field.id == field_id for field in space.fields)
+        if not field_exists:
+            raise NotFoundError(f"Field '{field_id}' not found in space '{slug}'")
+
+        # Remove field from database using $pull
+        await self._collection.update_one({"slug": slug}, {"$pull": {"fields": {"id": field_id}}})
+
+        # Update cache - remove field from list
+        space.fields = [field for field in space.fields if field.id != field_id]
+
+        # Drop index from notes collection
+        await self.core.services.note.drop_field_index(slug, field_id)
+
         return space
 
     async def update_all_spaces_cache(self) -> None:
