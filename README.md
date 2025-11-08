@@ -2,35 +2,58 @@
 
 A minimal version of [spacenote-backend](https://github.com/spacenote-projects/spacenote-backend) designed to extract and preserve only the core functionality.
 
+## Database Requirements
+
+### 1. Human & AI-Readable Data Access
+
+The system must support direct database access or convenient APIs that allow humans and AI agents to view notes as complete JSON documents. Notes should be represented in a clear, self-contained format:
+
+```json
+{
+  "_id": {"$oid": "690ef262fedbb30ffadf1c67"},
+  "space_slug": "tasks",
+  "number": 2,
+  "author_username": "admin",
+  "created_at": {"$date": "2025-11-08T07:33:54.102Z"},
+  "fields": {
+    "title": "Design database schema",
+    "body": "Create initial database schema...",
+    "assignee": "alice",
+    "status": "completed",
+    "priority": "high",
+    "tags": ["database", "design"]
+  }
+}
+```
+
+When documents contain nested objects (as in JSON), they are convenient for reading by both humans and AI agents. While the underlying storage implementation may vary, APIs should return notes in convenient JSON format that makes all data clear and understandable.
+
+### 2. Flexible Schema Evolution
+
+Notes must support flexible field additions without strict constraints:
+
+- **Long-lived spaces**: Spaces evolve over time, and schema requirements change
+- **Backward compatibility**: When new required fields are introduced, old notes must remain valid without those fields
+- **Data preservation**: Field schemas may evolve, but existing data must never be lost
+- **Flexibility**: By keeping `fields` as a flexible dictionary structure (`dict[str, Any]`), even old or undocumented data can be understood by humans or AI agents
+
+This flexibility in `notes.fields` is critical for long-term data integrity.
+
 ## Project Purpose
 
 This project is part of a database comparison experiment to help decide between **MongoDB** and **PostgreSQL** for the main SpaceNote project.
 
-### Why This Project Exists
+The original `spacenote-backend` has grown to ~8,000 lines of code across 14 modules. This minimal version strips away optional integrations (Telegram, LLM, image processing) and focuses on core data patterns (users, spaces, custom fields, notes, comments).
 
-The original `spacenote-backend` has grown to include many features (~8,000 lines of code, 14 modules). To make an informed decision about the database choice, we need:
-
-1. **Simplified codebase** - Strip away optional integrations (Telegram, LLM, advanced image processing) and keep only essential features
-2. **Clear comparison baseline** - A minimal MongoDB implementation that can be directly compared with `mini-backend-postgres`
-3. **Focus on core patterns** - Highlight how MongoDB handles the fundamental data structures (users, spaces, custom fields, notes, comments, filters)
-
-### Parallel Projects
-
+**Parallel implementations:**
 - **mini-backend-mongo** (this repo) - MongoDB implementation
 - **mini-backend-postgres** (planned) - PostgreSQL implementation with identical functionality
 
-After implementing both versions, we'll compare:
-- Code complexity
-- Query patterns
-- Performance characteristics
-- Developer experience
-- Schema flexibility vs. structure
+We'll compare code complexity, query patterns, performance, developer experience, and schema flexibility.
 
 ## Project Status
 
 🚧 **In Development** - Features are being added incrementally.
-
-This README will be updated as functionality is implemented.
 
 ## Technology Stack
 
@@ -43,68 +66,28 @@ This README will be updated as functionality is implemented.
 
 ### Natural Keys vs Surrogate Keys
 
-Unlike the original `spacenote-backend` which uses UUID-based IDs throughout the API, this implementation uses **natural keys** as the primary identifiers:
+This implementation uses **natural keys** as primary identifiers (unlike the original UUID-based approach):
 
-- **Technical ID**: Every collection has `_id: ObjectId` for MongoDB's internal use
-- **API/Code**: We use natural keys as primary identifiers:
-  - `User` → identified by `username` (string)
-  - `Space` → identified by `slug` (string)
-  - `Note` → identified by `space_slug + number` (composite key)
+- `User` → identified by `username`
+- `Space` → identified by `slug`
+- `Note` → identified by `space_slug + number`
 
-**Benefits**:
-- More readable URLs and API responses
-- Semantic identifiers that have business meaning
-- Simplified caching (no need to map IDs to entities)
-- Direct lookups without additional index queries
+Benefits: readable URLs (`/spaces/my-project/notes/42`), semantic identifiers, simplified caching, and direct lookups.
 
-**Example**:
-```
-GET /spaces/my-project/notes/42  # Natural keys
-vs
-GET /spaces/a1b2c3d4.../notes/e5f6g7h8...  # UUID-based
-```
+### Project Constraints & Architecture
 
-### Project Constraints & Architecture Rationale
+**Deployment & Scale:**
+- Single server, single database instance, single application instance
+- Max 10 users, 100 spaces, 1M notes
 
-This project is designed with specific constraints that inform architectural decisions:
+**Caching Strategy:**
+- Users and spaces: fully cached in memory (~205KB total) for instant lookups
+- Notes and comments: query-based access with MongoDB indexing and pagination
 
-#### Deployment Model
-- **Single server deployment** - No distributed setup or horizontal scaling
-- **Single database instance** - No replication, sharding, or multi-region deployment
-- **Single application instance** - No load balancing or multi-instance coordination
+**Authentication:**
+- Intentionally simplified token-based auth (focus is on data patterns, not production security)
 
-#### Data Scale Limits
-- **Max 10 users** - Small, stable user base
-- **Max 100 spaces** - Bounded workspace count
-- **Max 1,000,000 notes** - Primary scaling dimension
-
-#### Architecture Implications
-
-**In-Memory Caching Strategy**
-
-Users and spaces are fully cached in memory at application startup:
-- With max 10 users (~5KB) and 100 spaces (~200KB), memory footprint is negligible
-- Cache invalidation complexity is avoided since single-instance deployment guarantees cache consistency
-- Eliminates database queries for user/space lookups (most frequent operations)
-- Trade-off: Requires application restart for manual database changes
-
-**Simplified Authentication**
-
-Token-based authentication is intentionally simplified:
-- Focus is on MongoDB data patterns, not production-grade security
-- Suitable for comparison/experimentation purposes
-- Not intended as a security reference implementation
-
-**Notes and Comments: Query-Based Access**
-
-Unlike users/spaces, notes and comments are NOT cached:
-- Large dataset (up to 1M notes) makes full caching impractical
-- Access patterns benefit from MongoDB's indexing and querying capabilities
-- Pagination and filtering are essential at this scale
-
-## Core Features (Planned)
-
-The minimal version will include:
+## Core Features
 
 - **User Management** - Authentication, user accounts
 - **Space Management** - Workspaces with member access control
